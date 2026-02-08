@@ -1,4 +1,4 @@
-# OpenClaw 跨平台安全部署脚本
+# OpenClaw 安全部署脚本
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Shell Script](https://img.shields.io/badge/Shell-Bash-green.svg)](https://www.gnu.org/software/bash/)
