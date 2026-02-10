@@ -654,3 +654,205 @@ else
     log "ERROR" "此脚本应通过 curl 执行: curl -fsSL $SCRIPT_URL | bash"
     exit 1
 fi
+# ========================================
+# 工具箱功能 (qmd + Memos)
+# ========================================
+
+WORKSPACE=${OPENCLAW_WORKSPACE:-/home/ubuntu/.openclaw/workspace}
+QMD_BIN="/home/ubuntu/.bun/bin/qmd"
+MEMOS_CONTAINER="memos"
+MEMOS_PORT="6000"
+
+# 工具箱函数
+cmd_tools_help() {
+    echo ""
+    echo "========================================"
+    echo "  OpenClaw 工具箱"
+    echo "========================================"
+    echo ""
+    echo "  子命令："
+    echo "    qmd      本地记忆系统"
+    echo "    memos    Memos 备忘录"
+    echo ""
+}
+
+cmd_qmd_install() {
+    log "INFO" "安装 qmd 本地记忆系统..."
+
+    if ! command -v bun &> /dev/null; then
+        log "ERROR" "bun 未安装，请先安装 bun"
+        return 1
+    fi
+
+    log "INFO" "安装 qmd..."
+    bun install -g https://github.com/tobi/qmd
+
+    cd "$WORKSPACE"
+
+    # daily-logs
+    if ls memory/*.md &> /dev/null; then
+        cd memory
+        qmd collection add . --name daily-logs 2>/dev/null || log "WARN" "daily-logs 已存在"
+        log "INFO" "✓ daily-logs 集合"
+        cd "$WORKSPACE"
+    fi
+
+    # workspace
+    qmd collection add *.md --name workspace 2>/dev/null || log "WARN" "workspace 已存在"
+    log "INFO" "✓ workspace 集合"
+
+    log "INFO" "生成 Embedding（首次需要下载模型约2GB）..."
+    qmd embed
+
+    mkdir -p config
+    cat > config/mcporter.json << 'EOF'
+{
+  "mcpServers": {
+    "qmd": {
+      "command": "/home/ubuntu/.bun/bin/qmd",
+      "args": ["mcp"]
+    }
+  }
+}
+EOF
+    log "INFO" "✓ MCP 配置已创建"
+
+    CRON_CMD="cd $WORKSPACE && qmd embed"
+    if ! crontab -l 2>/dev/null | grep -q "qmd embed"; then
+        (crontab -l 2>/dev/null; echo "0 3 * * * $CRON_CMD") | crontab -
+        log "INFO" "✓ cron 任务已添加（每天凌晨3点）"
+    fi
+
+    log "INFO" "qmd 安装完成！"
+}
+
+cmd_qmd_status() {
+    cd "$WORKSPACE"
+    qmd status
+}
+
+cmd_qmd_search() {
+    cd "$WORKSPACE"
+    shift
+    if [ $# -lt 1 ]; then
+        echo "用法: $0 qmd search <关键词>"
+        return 1
+    fi
+    qmd search daily-logs "$@" --hybrid
+}
+
+cmd_qmd_embed() {
+    cd "$WORKSPACE"
+    qmd embed
+}
+
+cmd_qmd_list() {
+    cd "$WORKSPACE"
+    qmd collection list
+}
+
+cmd_memos_status() {
+    if ! command -v docker &> /dev/null; then
+        log "ERROR" "Docker 未安装"
+        return 1
+    fi
+    if ! docker ps &> /dev/null; then
+        log "ERROR" "Docker 未运行"
+        return 1
+    fi
+
+    if docker ps --format '{{.Names}}' | grep -q "^${MEMOS_CONTAINER}$"; then
+        log "INFO" "✓ Memos 容器运行中"
+    else
+        log "ERROR" "✗ Memos 容器未运行"
+    fi
+}
+
+cmd_memos_logs() {
+    if ! command -v docker &> /dev/null; then
+        log "ERROR" "Docker 未安装"
+        return 1
+    fi
+    docker logs -f "$MEMOS_CONTAINER" --tail 50
+}
+
+cmd_memos_create() {
+    if ! command -v docker &> /dev/null; then
+        log "ERROR" "Docker 未安装"
+        return 1
+    fi
+    shift
+    if [ $# -lt 1 ]; then
+        echo "用法: $0 memos create <内容>"
+        return 1
+    fi
+    local content="$1"
+    docker exec "$MEMOS_CONTAINER" curl -s -X POST \
+        "http://localhost:5230/api/v1/memos" \
+        -H "Content-Type: application/json" \
+        -d "{\"content\": \"${content}\", \"visibility\": \"PUBLIC\"}"
+}
+
+cmd_memos_sync() {
+    if ! command -v docker &> /dev/null; then
+        log "ERROR" "Docker 未安装"
+        return 1
+    fi
+    shift
+    if [ $# -lt 1 ]; then
+        echo "用法: $0 memos sync <文件路径>"
+        return 1
+    fi
+    local file_path="$1"
+    if [ ! -f "$file_path" ]; then
+        log "ERROR" "文件不存在: ${file_path}"
+        return 1
+    fi
+    local content=$(cat "$file_path")
+    local filename=$(basename "$file_path")
+    log "INFO" "同步文件到 Memos: ${filename}"
+    docker exec "$MEMOS_CONTAINER" curl -s -X POST \
+        "http://localhost:5230/api/v1/memos" \
+        -H "Content-Type: application/json" \
+        -d "{\"content\": \"${content}\", \"visibility\": \"PUBLIC\"}"
+}
+
+handle_tools() {
+    local subcmd="${1:-help}"
+    shift
+    case "$subcmd" in
+        qmd)
+            local qmd_cmd="${1:-help}"
+            shift
+            case "$qmd_cmd" in
+                install) cmd_qmd_install ;;
+                status) cmd_qmd_status ;;
+                search) cmd_qmd_search "$@" ;;
+                embed) cmd_qmd_embed ;;
+                list) cmd_qmd_list ;;
+                help|"") cmd_tools_help ;;
+                *) log "ERROR" "未知 qmd 子命令: $qmd_cmd" ;;
+            esac
+            ;;
+        memos)
+            local memos_cmd="${1:-help}"
+            shift
+            case "$memos_cmd" in
+                status) cmd_memos_status ;;
+                logs) cmd_memos_logs ;;
+                create) cmd_memos_create "$@" ;;
+                sync) cmd_memos_sync "$@" ;;
+                help|"") cmd_tools_help ;;
+                *) log "ERROR" "未知 memos 子命令: $memos_cmd" ;;
+            esac
+            ;;
+        help|"")
+            cmd_tools_help
+            ;;
+        *)
+            log "ERROR" "未知工具: $subcmd"
+            cmd_tools_help
+            ;;
+    esac
+}
+
