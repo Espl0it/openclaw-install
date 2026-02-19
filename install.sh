@@ -291,7 +291,7 @@ show_banner() {
     echo
     echo -e "${YELLOW}⚡ 支持模式: ${INSTALL_MODE^^} ${NC}"
     echo -e "${YELLOW}⚡ LLM 提供商: ${LLM_PROVIDER} ${NC}"
-    echo -e "${YELLOW}🔧 系统支持: macOS | Ubuntu 20.04+${NC}"
+    echo -e "${YELLOW}🔧 系统支持: Ubuntu 20.04+ | Debian 11+${NC}"
     echo
 }
 
@@ -302,10 +302,6 @@ detect_system() {
     local os="unknown"
     
     case "$uname_s" in
-        "Darwin")
-            os="macos"
-            log "INFO" "检测到系统: macOS"
-            ;;
         "Linux")
             if [[ -f "/etc/lsb-release" ]]; then
                 local ubuntu_version
@@ -386,10 +382,6 @@ install_docker() {
     local os="$1"
     
     case "$os" in
-        "macos")
-            log "INFO" "macOS 请从 https://docker.com 下载 Docker Desktop"
-            return 1
-            ;;
         "ubuntu"|"debian")
             curl -fsSL https://get.docker.com | sh
             sudo usermod -aG docker "$USER"
@@ -459,11 +451,6 @@ install_dependencies() {
     log "INFO" "安装系统依赖..."
     
     case "$os" in
-        "macos")
-            install_homebrew
-            brew update
-            brew install curl wget git
-            ;;
         "ubuntu"|"debian")
             log "INFO" "更新系统包..."
             sudo apt update && sudo apt upgrade -y
@@ -481,25 +468,6 @@ install_dependencies() {
     esac
     
     log "SUCCESS" "系统依赖安装完成"
-}
-
-install_homebrew() {
-    if command_exists brew; then
-        log "INFO" "Homebrew 已安装"
-        return
-    fi
-    
-    log "INFO" "安装 Homebrew..."
-    if ! /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
-        error_exit "Homebrew 安装失败"
-    fi
-    
-    if [[ -d "/opt/homebrew/bin" ]]; then
-        export PATH="/opt/homebrew/bin:$PATH"
-        echo 'export PATH="/opt/homebrew/bin:$PATH"' >> "$HOME/.zshrc"
-    fi
-    
-    log "SUCCESS" "Homebrew 安装完成"
 }
 
 configure_network_security() {
@@ -531,9 +499,6 @@ configure_firewall() {
     log "INFO" "配置防火墙..."
     
     case "$os" in
-        "macos")
-            log "INFO" "macOS 防火墙（请确保系统防火墙已启用）"
-            ;;
         "ubuntu"|"debian")
             sudo ufw --force reset
             sudo ufw default deny incoming
@@ -696,39 +661,6 @@ create_service() {
     mkdir -p "$log_dir"
     
     case "$os" in
-        "macos")
-            local plist_file="$HOME/Library/LaunchAgents/com.openclaw.ai.plist"
-            
-            cat > "$plist_file" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>com.openclaw.ai</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>$openclaw_path</string>
-    <string>start</string>
-  </array>
-  <key>RunAtLoad</key>
-  <true/>
-  <key>KeepAlive</key>
-  <dict>
-    <key>SuccessfulExit</key>
-    <false/>
-  </dict>
-  <key>StandardOutPath</key>
-  <string>$log_dir/stdout.log</string>
-  <key>StandardErrorPath</key>
-  <string>$log_dir/stderr.log</string>
-</dict>
-</plist>
-EOF
-            
-            launchctl load "$plist_file" 2>/dev/null || log "WARN" "服务加载失败"
-            ;;
-            
         "ubuntu"|"debian")
             local service_file="/etc/systemd/system/openclaw.service"
             
@@ -782,10 +714,6 @@ uninstall_openclaw() {
     
     # 删除服务
     case "$(detect_system)" in
-        "macos")
-            launchctl unload "$HOME/Library/LaunchAgents/com.openclaw.ai.plist" 2>/dev/null || true
-            rm -f "$HOME/Library/LaunchAgents/com.openclaw.ai.plist"
-            ;;
         "ubuntu"|"debian")
             sudo systemctl stop openclaw 2>/dev/null || true
             sudo systemctl disable openclaw 2>/dev/null || true
@@ -874,16 +802,8 @@ show_completion_guide() {
     echo "  openclaw doctor          # 健康检查"
     echo
     echo -e "${CYAN}🔧 服务管理:${NC}"
-    case "$os" in
-        "macos")
-            echo "  launchctl start com.openclaw.ai"
-            echo "  launchctl stop com.openclaw.ai"
-            ;;
-        *)
-            echo "  sudo systemctl start openclaw"
-            echo "  sudo systemctl stop openclaw"
-            ;;
-    esac
+    echo "  sudo systemctl start openclaw"
+    echo "  sudo systemctl stop openclaw"
     echo
     echo -e "${CYAN}📚 文档:${NC}"
     echo "  https://openclaw.ai/docs"

@@ -8,7 +8,7 @@
 # 方式1: 使用安装脚本（推荐）
 curl -fsSL https://raw.githubusercontent.com/Espl0it/OpenClawInstall/main/install.sh | bash -s -- --mode docker
 
-# 方式2: 手动部署
+# 方式2: 手动部署 (Linux)
 docker pull alpine/openclaw:latest
 docker run -d \
   --name openclaw \

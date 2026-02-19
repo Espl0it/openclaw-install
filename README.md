@@ -2,12 +2,12 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Shell Script](https://img.shields.io/badge/Shell-Bash-green.svg)](https://www.gnu.org/software/bash/)
-[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Ubuntu%20%7C%20Docker-blue.svg)](https://github.com/Espl0it/OpenClawInstall)
+[![Platform](https://img.shields.io/badge/Platform-Ubuntu%20%7C%20Debian%20%7C%20Docker-blue.svg)](https://github.com/Espl0it/OpenClawInstall)
 [![Version](https://img.shields.io/badge/Version-3.0-blue.svg)](https://github.com/Espl0it/OpenClawInstall)
 
 ## 📋 概述
 
-OpenClaw 跨平台安全部署脚本是一个自动化安装和配置 OpenClaw AI 助手的 Bash 脚本，专为生产环境的安全部署而设计。脚本支持 **在线一键安装** 和本地安装两种方式，兼容 macOS、Ubuntu、Debian 系统，提供完整的安全加固措施和最佳实践配置。
+OpenClaw 跨平台安全部署脚本是一个自动化安装和配置 OpenClaw AI 助手的 Bash 脚本，专为生产环境的安全部署而设计。脚本支持 **在线一键安装** 和本地安装两种方式，兼容 Ubuntu、Debian 系统，提供完整的安全加固措施和最佳实践配置。
 
 ### 🌟 核心特性
 

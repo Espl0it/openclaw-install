@@ -85,10 +85,9 @@ chmod +x install.sh
 
 ### 支持的操作系统
 
-- **macOS**: 10.15+ (Catalina 及以上版本)
 - **Ubuntu**: 20.04 LTS 及以上版本
 - **Debian**: 11+ (实验性支持)
-- **Docker**: Linux/macOS/Windows (Docker Desktop)
+- **Docker**: Linux (Docker Desktop)
 
 ### 前置条件
 
