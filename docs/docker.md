@@ -165,3 +165,50 @@ docker cp openclaw:/home/node/.openclaw ./backup
 # 恢复
 docker cp ./backup/. openclaw:/home/node/.openclaw/
 ```
+
+---
+
+## 容器权限问题
+
+### 问题原因
+
+容器内用户 `node` 没有权限写入挂载的宿主机目录。
+
+### 解决方案
+
+在 **宿主机** 执行：
+
+```bash
+# 修复权限（宿主机）
+sudo chown -R 1000:1000 ~/.openclaw
+chmod -R 755 ~/.openclaw
+```
+
+### Docker Compose 配置
+
+```yaml
+services:
+  openclaw:
+    image: openclaw:latest
+    user: "1000:1000"  # 使用宿主机用户
+    volumes:
+      - ~/.openclaw:/home/node/.openclaw
+```
+
+### 启动时指定用户
+
+```bash
+docker run -d \
+  --name openclaw \
+  --user $(id -u):$(id -g) \
+  -v ~/.openclaw:/home/node/.openclaw \
+  ...
+```
+
+### 恢复备份
+
+如果遇到权限错误，配置文件可能有 `.bak` 备份：
+
+```bash
+cp ~/.openclaw/openclaw.json.bak ~/.openclaw/openclaw.json
+```
