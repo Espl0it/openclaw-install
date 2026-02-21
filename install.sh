@@ -34,7 +34,7 @@ readonly LLM_PROVIDER="${LLM_PROVIDER:-minimax}"
 readonly INSTALL_DIR="${INSTALL_DIR:-$HOME/.openclaw}"
 readonly VERBOSE="${VERBOSE:-0}"
 readonly DRY_RUN="${DRY_RUN:-0}"
-readonly INSTALL_MODE="${INSTALL_MODE:-native}"  # native | docker
+INSTALL_MODE="${INSTALL_MODE:-native}"  # native | docker
 
 # 配置文件路径
 readonly CONFIG_FILE="${CONFIG_FILE:-$HOME/.openclaw/install.conf}"
